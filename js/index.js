@@ -18,7 +18,7 @@ ogg_reader.onload = function(){
         ogg_source = ogg.createBufferSource();
         ogg_source.buffer = buffer;
         ogg_source.connect(ogg.destination);
-        ogg_source.start(0);
+        //ogg_source.start(0);
     });
 }
 
