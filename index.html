@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<!-- Google Fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>MEGANE</title>
+</head>
+
+<body id="body">
+    <div id="index">
+        <h2>1から作る場合はここに.oggファイルをドロップ</h2>
+        <div id="oggfile_drop">
+            <p>ここに.oggファイルをドロップ</p>
+            または <input type="file" name="file" id="oggfile_input">
+        </div>
+    </div>
+    <div id="4k">
+        <div style="display: flex;">
+            <div id="menu">
+                <button id="select_notes" class="button">
+                    <span class="material-symbols-outlined">
+                        edit
+                    </span>
+                </button>
+                <br>
+                <button id="tool_notes" class="button">
+                    <span class="material-symbols-outlined">
+                        content_copy
+                    </span>
+                </button>
+            </div>
+            <div id="chart">
+                てすとてすと
+            </div>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript" src="js/index.js"></script>
+<script type="text/javascript" src="js/4k.js"></script>
+<link rel="stylesheet" href="css/index.css">
+<link rel="stylesheet" href="css/4k.css">
+<!-- Onload -->
+<script>
+    changePage('index');
+</script>
+</html>

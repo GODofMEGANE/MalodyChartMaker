@@ -1,0 +1,36 @@
+body {
+    background-color: whitesmoke;
+}
+
+#menu{
+    width: 10vmin;
+    height: 100vmin;
+    border: 1px solid black;
+}
+
+#chart{
+    width: 80vmin;
+    height: 100vmin;
+    overflow: auto;
+    border: 1px solid black;
+}
+
+.button{
+    border-radius: 50%;
+    opacity: 0.4;
+    box-shadow: 8px 8px 16px darkblue;
+    background-color: grey;
+    width: 100%;
+    aspect-ratio: 1/1;
+    margin-bottom: 10px;
+    transition: all 100ms 0s ease-in-out;
+}
+
+.button:hover{
+    opacity: 1;
+    background-color: silver;
+}
+
+.material-symbols-outlined{
+    font-size: 8vmin;
+}
