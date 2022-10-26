@@ -19,7 +19,6 @@ ogg_reader.onload = function(){
         ogg_source.buffer = buffer;
         ogg_source.connect(ogg.destination);
         ogg_source.start(0);
-        detectBPM(ogg_source, 0.1);
     });
 }
 
