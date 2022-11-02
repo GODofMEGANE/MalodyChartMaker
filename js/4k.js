@@ -20,10 +20,29 @@ let longnote_place = {
     column: -1,
     split: -1
 };
+let time = new Date();
 let chart_info = {
     bpm: 60,
+    offset: 0,
+    creator: "",
+    version: "",
+    id: 0,
+    mode: 0,
+    time: time.getTime(),
+    song: {
+        title: "",
+        artist: "",
+        id: 0
+    },
+    mode_ext: {
+        column: 4,
+        bar_begin: 0
+    },
     notes: []
 };
+
+const SPLIT_VALUE = [2, 3, 4, 6, 8, 12, 16, 24, 32];
+let split_value_index = 2;
 
 //グリッド含め全ノーツを描画する
 function makeChart() {
@@ -74,7 +93,7 @@ function readNotesData() {
 //divをクリックした際の動作
 function placeNote(row, column) {
     let location_classname = 'row' + row + ' column' + column;
-    if (notes_mode == 0 && selectNote(row, column, split).id == 0) {
+    if (notes_mode == 0 && selectNote(row, column, split).id == -1) {
         let note_info = reduction({
             id: notes_elm_id,
             type: 1,
@@ -86,7 +105,7 @@ function placeNote(row, column) {
         chart_info.notes.push(note_info);
         displayNote(note_info);
     }
-    else if (notes_mode == 1) {
+    else if (notes_mode == 1 && selectNote(row, column, split).id == -1) {
         if (longnote_place.column != column) {
             longnote_place = reduction({
                 beat: row,
@@ -114,7 +133,7 @@ function placeNote(row, column) {
             };
         }
     }
-    else if (notes_mode == 2) {
+    else if (notes_mode == 2 && selectNote(row, column, split).id != -1) {
         if (selectNote(row, column, split).type == 1) {
             let note = document.getElementsByClassName('note ' + location_classname)[0];
             deleteNote(note.id);
@@ -127,18 +146,28 @@ function placeNote(row, column) {
 }
 
 //row, column, splitの情報からノーツを返す
-function selectNote(row, column, split) {
+function selectNote(row, column, arg_split) {
     let answer = {
         id: -1
     };
     let note_check = reduction({
         column: column,
         beat: row,
-        split: split
+        split: arg_split
     });
     chart_info.notes.forEach((element) => {
         if (element.column == note_check.column && element.beat == note_check.beat && element.split == note_check.split) {
             answer = element;
+            return answer;
+        }
+        if (element.column == note_check.column && element.type == 2) {
+            let long_start = element.beat * note_check.split;
+            let long_end = long_start + element.length * note_check.split;
+            let check_beat = note_check.beat * element.split;
+            if (long_start <= check_beat && long_end >= check_beat) {
+                answer = element;
+                return answer;
+            }
         }
     });
     return answer;
@@ -146,12 +175,22 @@ function selectNote(row, column, split) {
 
 //idから譜面データを削除し描画に反映させる
 function deleteNote(id) {
-    chart_info.notes.forEach((element, index) => {
-        if (element.id == id) {
-            chart_info.notes.splice(index, 1);
+    try {
+        let note_type = -1;
+        chart_info.notes.forEach((element, index) => {
+            if (element.id == id) {
+                note_type = element.type;
+                chart_info.notes.splice(index, 1);
+            }
+        });
+        if (note_type == 2) {
+            document.getElementById('b' + id).remove();
         }
-    });
-    document.getElementById(id).remove();
+        document.getElementById(id).remove();
+    } catch (e) {
+        console.error(e);
+        console.error("argument id:" + toString(id));
+    }
 }
 
 //引数のノーツに従って描画する
@@ -169,14 +208,10 @@ function displayNote(note_info) {
             if (ongrid) note.className = 'note ' + location_classname;
             else note.className = 'note';
             note.style.bottom = (grid_height * (row + 0.5)) + 'vh';
-            let placeNotesOnclick = (id) => {
-                clickNote(id);
-            }
-            note.onclick = () => placeNotesOnclick(notes_elm_id);
+            note.onclick = () => clickNote(note_info.id);
             elm_start[note_info.column].appendChild(note);
             break;
         case 2:
-            console.log(note_info);
             if (row == Math.floor(row)) {
                 ongrid = true;
             }
@@ -184,18 +219,16 @@ function displayNote(note_info) {
             if (ongrid) note.className = 'long ' + location_classname;
             else note.className = 'long';
             note.style.bottom = (grid_height * (row + 0.5)) + 'vh';
-            let placeLongsOnclick = (id) => {
-                clickNote(id);
-            }
-            note.onclick = () => placeLongsOnclick(notes_elm_id);
+            note.onclick = () => clickNote(note_info.id);
             elm_start[note_info.column].appendChild(note);
             //ロングノーツの中間部分
             let length = note_info.length / note_info.split * split;
             let bridge = document.createElement('div');
+            bridge.id = 'b' + note_info.id;
             bridge.className = 'bridge';
-            bridge.style.height = (grid_height * (length + 0.5)) + 'vh';
+            bridge.style.height = (grid_height * length) + 'vh';
             bridge.style.bottom = (grid_height * (row + 0.5)) + 'vh';
-            bridge.onclick = () => placeLongsOnclick(notes_elm_id);
+            bridge.onclick = () => clickNote(note_info.id);
             elm_start[note_info.column].appendChild(bridge);
             break;
     }
@@ -203,13 +236,9 @@ function displayNote(note_info) {
 
 //描画されたノーツをクリックした際に発火
 function clickNote(id) {
-    chart_info.notes.forEach((element) => {
-        if (element.id == id) {
-            if (notes_mode == 2) {
-                deleteNote(id);
-            }
-        }
-    });
+    if (notes_mode == 2) {
+        deleteNote(id);
+    }
 }
 
 function changeNotesMode(mode) {
@@ -240,8 +269,8 @@ function closeDialog() {
 function autocompBPM() {
     detectBPM(ogg_source, 1).then(
         function (detected) {
-            console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%");
-            alert("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + Math.round(detected.tempo[0].accuracy * 10000) / 100 + "%");
+            console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%\nOFFSET:" + detected.offset);
+            alert("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + Math.round(detected.tempo[0].accuracy * 10000) / 100 + "%\nOFFSET:" + detected.offset);
             elm_bpm.value = detected.tempo[0].tempo;
             chart_info.tempo = detected.tempo[0].tempo;
             makeChart();
@@ -255,3 +284,27 @@ elm_bpm.addEventListener('change', (event) => {
     makeChart();
     onLoaded();
 });
+
+function exportChart() {
+    let chart_JSON = exportToJSON(chart_info);
+    let zip = new JSZip();
+    let folder = zip.folder("0");
+    folder.file("chart.mc", chart_JSON);
+    folder.file("song.ogg", ogg_blob);
+    zip.generateAsync({ type: "blob" }).then(function (content) {
+        saveAs(content, "song.mcz");
+    });
+}
+
+function changeSplit(value) {
+    onLoading().then(function () {
+        console.log("onLoading");
+        split_value_index = Math.min(8, Math.max(0, split_value_index + value));
+        split = SPLIT_VALUE[split_value_index];
+        document.getElementById('split_num').innerText = split;
+        makeChart().then(function () {
+            console.log("onLoaded");
+            onLoaded();
+        });
+    });
+}

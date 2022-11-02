@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <!-- Google Fonts -->
-<link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@500&family=M+PLUS+1p:wght@900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
 <head>
     <meta charset="UTF-8">
@@ -123,6 +124,11 @@
                         </div>
                     </div>
                 </button>
+                <div id="split">
+                    <button id="split_dec" class="split_button" onclick='changeSplit(-1);'>-</button>
+                    <div id="split_num">4</div>
+                    <button id="split_inc" class="split_button" onclick='changeSplit(1);'>+</button>
+                </div>
             </div>
             <div id="chart">
                 <a id="chart_start">
@@ -152,6 +158,10 @@
         </div>
     </div>
 </body>
+<!-- librabruy -->
+<script type="text/javascript" src="dist/jszip.js"></script>
+<script type="text/javascript" src="dist/FileSaver.js"></script>
+<!-- Scripts -->
 <script type="text/javascript" src="js/utils.js"></script>
 <script type="text/javascript" src="js/loading.js"></script>
 <script type="text/javascript" src="js/index.js"></script>

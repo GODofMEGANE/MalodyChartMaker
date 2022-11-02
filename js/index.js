@@ -1,7 +1,8 @@
 "use strict";
 
-let ogg_source
+let ogg_source;
 let ogg_reader = new FileReader();
+let ogg_blob;
 let ogg = new window.AudioContext();
 
 const elm_body = document.getElementById('body');
@@ -21,8 +22,9 @@ ogg_reader.onload = function () {
         ogg_source.connect(ogg.destination);
         detectBPM(ogg_source, 1).then(function(detected){
             chart_info.bpm = detected.tempo[0].tempo;
+            chart_info.offset = detected.offset;
             elm_bpm.value = detected.tempo[0].tempo;
-            console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%");
+            console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%\nOFFSET:" + detected.offset);
             makeChart().then(function(){
                 location.hash = "chart_start";
                 console.log("Loading Complete");
@@ -45,6 +47,7 @@ elm_oggfile_drop.addEventListener('drop',
         evt.stopPropagation();
         evt.preventDefault();
         let file = evt.dataTransfer.files[0];
+        ogg_blob = file;
         ogg_reader.readAsArrayBuffer(file);
         changePage('4k');
     }
@@ -52,6 +55,7 @@ elm_oggfile_drop.addEventListener('drop',
 
 elm_oggfile_input.addEventListener('change',
     function () {
+        ogg_blob = this.files[0];
         ogg_reader.readAsArrayBuffer(this.files[0]);
         changePage('4k');
     }
