@@ -5,3 +5,7 @@
     height: 200px;
     border-radius: 30px;
 }
+
+#inner_oggfile_drop{
+    margin: 20px;
+}

@@ -11,24 +11,42 @@
 </head>
 
 <body id="body">
+    <div id="loading">
+        <div id="loading_anim">
+            <div id="notes_div">
+                <div id="anim_1" class="anim_notes"></div>
+                <div id="anim_2" class="anim_notes"></div>
+                <div id="anim_3" class="anim_notes"></div>
+                <div id="anim_4" class="anim_notes"></div>
+            </div>
+            <div id="bombs_div">
+                <div id="bomb_1" class="anim_bombs"></div>
+                <div id="bomb_2" class="anim_bombs"></div>
+                <div id="bomb_3" class="anim_bombs"></div>
+                <div id="bomb_4" class="anim_bombs"></div>
+            </div>
+        </div>
+    </div>
     <div id="index">
         <h2>1から作る場合はここに.oggファイルをドロップ</h2>
         <div id="oggfile_drop">
-            <p>ここに.oggファイルをドロップ</p>
-            または <input type="file" name="file" id="oggfile_input" accept=".ogg">
+            <div id="inner_oggfile_drop">
+                <p>ここに.oggファイルをドロップ</p>
+                または <input type="file" name="file" id="oggfile_input" accept=".ogg">
+            </div>
         </div>
     </div>
     <div id="4k">
         <div style="display: flex;">
             <div id="menu">
                 <button id="select_notes" class="button">
-                    <span class="material-symbols-outlined">
+                    <span class="rotate_symbols material-symbols-outlined">
                         edit
                     </span>
                     <div id="select_notes_hover" class="button_hover">
                         <div id="select_notes_submenu" class="submenu">
                             <div class="subbutton_main">
-                                <span class="material-symbols-outlined">
+                                <span class="rotate_symbols material-symbols-outlined">
                                     edit
                                 </span>
                             </div>
@@ -52,13 +70,13 @@
                 </button>
                 <br>
                 <button id="tool_notes" class="button">
-                    <span class="material-symbols-outlined">
+                    <span class="rotate_symbols material-symbols-outlined">
                         tools_wrench
                     </span>
                     <div id="tool_notes_hover" class="button_hover">
                         <div id="tool_notes_submenu" class="submenu">
                             <div class="subbutton_main">
-                                <span class="material-symbols-outlined">
+                                <span class="rotate_symbols material-symbols-outlined">
                                     tools_wrench
                                 </span>
                             </div>
@@ -86,14 +104,33 @@
                     </div>
                 </button>
                 <br>
-                <button id="info" class="button" onclick="openDialog();">
-                    <span class="material-symbols-outlined">
-                        info
+                <button id="info" class="button">
+                    <span class="material-symbols-outlined rotate_symbols">
+                        feed
                     </span>
+                    <div id="info_hover" class="button_hover">
+                        <div id="info_submenu" class="submenu">
+                            <div class="subbutton_main">
+                                <span class="rotate_symbols material-symbols-outlined">
+                                    feed
+                                </span>
+                            </div>
+                            <div class="subbutton" onclick='openDialog();'>
+                                <li class="material-symbols-outlined">
+                                    music_note
+                                </li>
+                            </div>
+                        </div>
+                    </div>
                 </button>
             </div>
             <div id="chart">
-                てすとてすと
+                <a id="chart_start">
+                    <div id="start-0" class="start column0"></div>
+                    <div id="start-1" class="start column1"></div>
+                    <div id="start-2" class="start column2"></div>
+                    <div id="start-3" class="start column3"></div>
+                </a>
             </div>
             <div id="settings">
                 <span class="material-symbols-outlined" onclick='alert("まだだよ");'>
@@ -116,12 +153,15 @@
     </div>
 </body>
 <script type="text/javascript" src="js/utils.js"></script>
+<script type="text/javascript" src="js/loading.js"></script>
 <script type="text/javascript" src="js/index.js"></script>
 <script type="text/javascript" src="js/4k.js"></script>
+<link rel="stylesheet" href="css/loading.css">
 <link rel="stylesheet" href="css/index.css">
 <link rel="stylesheet" href="css/4k.css">
 <!-- Onload -->
 <script>
+    location.hash = "";
     changePage('index');
     changeNotesMode(0);
 </script>
