@@ -1,14 +1,16 @@
 "use strict";
 
 let notes_elm_id = 0;
-let elm_bpm = document.getElementById('bpm');
-let elm_chart_start = document.getElementById('chart_start');
-let elm_start = [
+const elm_bpm = document.getElementById('bpm');
+const elm_chart_start = document.getElementById('chart_start');
+const elm_start = [
     document.getElementById('start-0'),
     document.getElementById('start-1'),
     document.getElementById('start-2'),
     document.getElementById('start-3')
 ]
+const elm_info_dialog = document.getElementById('info_dialog');
+const elm_settings_dialog = document.getElementById('settings_dialog');
 
 let notes_mode = 0;
 let magnification = 1.0;
@@ -16,6 +18,11 @@ let max_row;
 let split = 4;
 let grid_height;
 let longnote_place = {
+    beat: -1,
+    column: -1,
+    split: -1
+};
+let selected_place = {
     beat: -1,
     column: -1,
     split: -1
@@ -41,6 +48,7 @@ let chart_info = {
     notes: []
 };
 
+let selected_notes = [];
 const SPLIT_VALUE = [2, 3, 4, 6, 8, 12, 16, 24, 32];
 let split_value_index = 2;
 
@@ -72,7 +80,7 @@ function makeChart() {
                 if ((max_row - row - 1) % split == 0) chart_grid.innerHTML = '<hr width="100%" size="3" noshade="" color="black">';
                 else chart_grid.innerHTML = '<hr width="100%" size="1" noshade="" color="lightgray">';
                 const placeNotesOnclick = (note_row, note_col) => {
-                    placeNote(note_row, note_col);
+                    clickDiv(note_row, note_col);
                 }
                 chart_grid.onclick = () => placeNotesOnclick(max_row - row - 1, column);
                 chart_grid_row.appendChild(chart_grid);
@@ -91,7 +99,7 @@ function readNotesData() {
 }
 
 //divをクリックした際の動作
-function placeNote(row, column) {
+function clickDiv(row, column) {
     let location_classname = 'row' + row + ' column' + column;
     if (notes_mode == 0 && selectNote(row, column, split).id == -1) {
         let note_info = reduction({
@@ -143,6 +151,18 @@ function placeNote(row, column) {
             deleteNote(long.id);
         }
     }
+    else if (notes_mode == 3) {
+        if (selected_place.beat == -1) {
+            selected_place = reduction({
+                beat: row,
+                column: column,
+                split: split
+            });
+        }
+        else {
+            selectedNotes = selectNotes(selected_place.beat, selected_place.column, selected_place.split, row, column, split);
+        }
+    }
 }
 
 //row, column, splitの情報からノーツを返す
@@ -164,9 +184,55 @@ function selectNote(row, column, arg_split) {
             let long_start = element.beat * note_check.split;
             let long_end = long_start + element.length * note_check.split;
             let check_beat = note_check.beat * element.split;
-            if (long_start <= check_beat && long_end >= check_beat) {
+            if (isContain(check_beat, long_start, long_end)) {
                 answer = element;
                 return answer;
+            }
+        }
+    });
+    return answer;
+}
+
+//2組のrow, column, splitの情報から範囲に含まれるノーツの配列を返す
+function selectNotes(start_row, start_column, start_arg_split, end_row, end_column, end_arg_split) {
+    let answer = [];
+    let start_check;
+    let end_check;
+    if (start_row * end_arg_split < end_row * start_arg_split) {
+        start_check = reduction({
+            column: Math.min(start_column, end_column),
+            beat: start_row,
+            split: start_arg_split
+        });
+        end_check = reduction({
+            column: Math.max(start_column, end_column),
+            beat: end_row,
+            split: end_arg_split
+        });
+    }
+    else{
+        start_check = reduction({
+            column: Math.min(start_column, end_column),
+            beat: end_row,
+            split: end_arg_split
+        });
+        end_check = reduction({
+            column: Math.max(start_column, end_column),
+            beat: start_row,
+            split: start_arg_split
+        });
+    }
+    chart_info.notes.forEach((element) => {
+        if (isContain(element.beat * start_check.split / element.split, start_check.beat, end_check.beat) && isContain(element.column, start_check.column, end_check.column)) {
+            answer.push(element);
+        }
+        if (element.column == note_check.column && element.type == 2) {
+            let long_end = long_start + element.length * note_check.split;
+            if (isContain(long_end * start_check.split / element.split, start_check.beat, end_check.beat)) {
+                answer.push(element);
+            }
+            else if (long_end * start_check.split / element.split > end_check.beat && element.beat * start_check.split / element.split < start_check.beat) {
+                answer.push(element);
             }
         }
     });
@@ -253,17 +319,24 @@ function changeNotesMode(mode) {
     });
 }
 
-function openDialog() {
-    let dialog = document.getElementById('info_dialog');
-    dialog.style.visibility = 'visible';
-    dialog.style.opacity = 1.0;
-
+function openDialog(dialog_id) {
+    if (dialog_id == 0) {
+        closeDialog(1);
+        elm_info_dialog.showModal();
+    }
+    if (dialog_id == 1) {
+        closeDialog(0);
+        elm_settings_dialog.showModal();
+    }
 }
 
-function closeDialog() {
-    let dialog = document.getElementById('info_dialog');
-    dialog.style.visibility = 'hidden';
-    dialog.style.opacity = 0.0;
+function closeDialog(dialog_id) {
+    if (dialog_id == 0) {
+        elm_info_dialog.close();
+    }
+    if (dialog_id == 1) {
+        elm_settings_dialog.close();
+    }
 }
 
 function autocompBPM() {

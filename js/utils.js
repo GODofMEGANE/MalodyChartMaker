@@ -197,3 +197,12 @@ function reduction(note) {
     }
     return note;
 }
+
+function isContain(value, min, max){
+    if(value >= min && value <= max){
+        return true;
+    }
+    else{
+        return false;
+    }
+}

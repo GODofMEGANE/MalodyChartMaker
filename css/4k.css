@@ -20,7 +20,11 @@ body {
 #settings{
     width: 5vw;
     height: 95vh;
-    text-align: right
+    text-align: right;
+}
+
+#settings_button{
+    cursor: pointer;
 }
 
 .mainmenu{
@@ -245,7 +249,8 @@ body {
 
 #split_num{
     width: 6vw;
-    transform: translate(20%, -50%);
+    text-align: center;
+    transform: translateY(-25%);
     font-family: 'M PLUS 1p', sans-serif;
     font-size: 4vh;
     z-index: -10;
@@ -256,8 +261,6 @@ body {
 */
 .dialog{
     z-index: 10;
-    opacity: 0.0;
-    visibility: hidden;
     position: absolute;
     top: 10vh;
     left: 10vh;

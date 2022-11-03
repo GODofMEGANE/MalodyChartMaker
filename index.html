@@ -116,7 +116,7 @@
                                     feed
                                 </span>
                             </div>
-                            <div class="subbutton" onclick='openDialog();'>
+                            <div class="subbutton" onclick='openDialog(0);'>
                                 <li class="material-symbols-outlined">
                                     music_note
                                 </li>
@@ -139,22 +139,31 @@
                 </a>
             </div>
             <div id="settings">
-                <span class="material-symbols-outlined" onclick='alert("まだだよ");'>
+                <span id="settings_button" class="material-symbols-outlined" onclick='openDialog(1);'>
                     settings
                 </span>
             </div>
 
-            <!-- pseudo dialog -->
-            <div id="info_dialog" class="dialog">
-                譜面のBPM
-                <input id="bpm" type="number">
-                <button onclick="autocompBPM();">自動検出</button>
-
-                <span class="material-symbols-outlined close" onclick="closeDialog();">
+            <dialog id="info_dialog" class="dialog">
+                <label>譜面のBPM
+                    <input id="bpm" type="number">
+                    <button onclick="autocompBPM();">自動検出</button>
+                </label>
+                <span class="material-symbols-outlined close" onclick="closeDialog(0);">
                     close
                 </span>
-            </div>
+            </dialog>
 
+            <dialog id="settings_dialog" class="dialog">
+                <h1>譜面設定</h1>
+                <label>1小節の拍数を細かく変更する
+                    <input type="checkbox" id="setting_detail_split">
+                </label>
+
+                <span class="material-symbols-outlined close" onclick="closeDialog(1);">
+                    close
+                </span>
+            </dialog>
         </div>
     </div>
 </body>
