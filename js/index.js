@@ -24,6 +24,7 @@ ogg_reader.onload = function () {
             chart_info.bpm = detected.tempo[0].tempo;
             chart_info.offset = detected.offset;
             elm_bpm.value = detected.tempo[0].tempo;
+            elm_offset.value = detected.offset;
             console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%\nOFFSET:" + detected.offset);
             makeChart().then(function(){
                 location.hash = "chart_start";

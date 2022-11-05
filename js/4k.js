@@ -2,6 +2,7 @@
 
 let notes_elm_id = 0;
 const elm_bpm = document.getElementById('bpm');
+const elm_offset = document.getElementById('offset');
 const elm_chart_start = document.getElementById('chart_start');
 const elm_start = [
     document.getElementById('start-0'),
@@ -48,7 +49,10 @@ let chart_info = {
     notes: []
 };
 
-let selected_notes = [];
+let selected_notes = {
+    start: {},
+    notes: []
+};
 const SPLIT_VALUE = [2, 3, 4, 6, 8, 12, 16, 24, 32];
 let split_value_index = 2;
 
@@ -160,8 +164,18 @@ function clickDiv(row, column) {
             });
         }
         else {
-            selectedNotes = selectNotes(selected_place.beat, selected_place.column, selected_place.split, row, column, split);
+            selected_notes.start = selected_place;
+            selected_notes.notes = selectNotes(selected_place.beat, selected_place.column, selected_place.split, row, column, split);
+            console.log(selected_notes);
+            selected_place = {
+                beat: -1,
+                column: -1,
+                split: -1
+            };
         }
+    }
+    else if (notes_mode == 4) {
+        pasteNotes(selected_notes, {beat: row, column: column, split: split});
     }
 }
 
@@ -210,7 +224,7 @@ function selectNotes(start_row, start_column, start_arg_split, end_row, end_colu
             split: end_arg_split
         });
     }
-    else{
+    else {
         start_check = reduction({
             column: Math.min(start_column, end_column),
             beat: end_row,
@@ -226,8 +240,8 @@ function selectNotes(start_row, start_column, start_arg_split, end_row, end_colu
         if (isContain(element.beat * start_check.split / element.split, start_check.beat, end_check.beat) && isContain(element.column, start_check.column, end_check.column)) {
             answer.push(element);
         }
-        if (element.column == note_check.column && element.type == 2) {
-            let long_end = long_start + element.length * note_check.split;
+        if (isContain(element.column, start_check.column, end_check.column) && element.type == 2) {
+            let long_end = start_check + element.length * start_check.split;
             if (isContain(long_end * start_check.split / element.split, start_check.beat, end_check.beat)) {
                 answer.push(element);
             }
@@ -302,8 +316,73 @@ function displayNote(note_info) {
 
 //描画されたノーツをクリックした際に発火
 function clickNote(id) {
+    let clicked_note;
+        chart_info.notes.forEach(function (element) {
+            if (element.id == id) {
+                clicked_note = element;
+                return;
+            }
+        });
     if (notes_mode == 2) {
         deleteNote(id);
+    }
+    if(notes_mode == 3){
+        if (selected_place.beat == -1) {
+            selected_place = reduction({
+                beat: clicked_note.beat,
+                column: clicked_note.column,
+                split: clicked_note.split
+            });
+        }
+        else {
+            selected_notes.start = selected_place;
+            selected_notes.notes = selectNotes(selected_place.beat, selected_place.column, selected_place.split, clicked_note.beat, clicked_note.column, clicked_note.split);
+            console.log(selected_notes);
+            selected_place = {
+                beat: -1,
+                column: -1,
+                split: -1
+            };
+        }
+    }
+    if (notes_mode == 4) {
+        pasteNotes(selected_notes, clicked_note);
+    }
+}
+
+function pasteNotes(copy, place){
+    if (copy.notes.length == 0) {
+        alert("ノーツが選択されていません");
+    }
+    else {
+        copy.notes.forEach(function (element) {
+            let place_note;
+            if (element.type == 1) {
+                place_note = reduction({
+                    id: notes_elm_id,
+                    type: 1,
+                    column: place.column + element.column - copy.start.column,
+                    beat: place.beat * copy.start.split * element.split + element.beat * place.split * copy.start.split - copy.start.beat * place.split * element.split,
+                    split: element.split * copy.start.split * place.split
+                });
+            }
+            else if (element.type == 2) {
+                place_note = reduction({
+                    id: notes_elm_id,
+                    type: 2,
+                    column: place.column + element.column - copy.start.column,
+                    beat: place.beat * copy.start.split * element.split + element.beat * place.split * copy.start.split - copy.start.beat * place.split * element.split,
+                    length: element.length * copy.start.split * place.split,
+                    split: element.split * copy.start.split * place.split
+                });
+            }
+            if (place_note.beat < 0 || !isContain(place_note.column, 0, 3) || selectNote(place_note.beat, place_note.column, place_note.split).id != -1) {
+                return;
+            }
+            notes_elm_id++;
+            displayNote(place_note);
+            chart_info.notes.push(place_note);
+        });
     }
 }
 
@@ -340,13 +419,18 @@ function closeDialog(dialog_id) {
 }
 
 function autocompBPM() {
+    onLoading();
     detectBPM(ogg_source, 1).then(
         function (detected) {
             console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%\nOFFSET:" + detected.offset);
             alert("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + Math.round(detected.tempo[0].accuracy * 10000) / 100 + "%\nOFFSET:" + detected.offset);
             elm_bpm.value = detected.tempo[0].tempo;
+            elm_offset.value = detected.offset;
             chart_info.tempo = detected.tempo[0].tempo;
-            makeChart();
+            chart_info.offset = detected.offset;
+            setTimeout(() => makeChart().then(function () {
+                onLoaded();
+            }), 0);
         }
     );
 }
@@ -354,8 +438,13 @@ function autocompBPM() {
 elm_bpm.addEventListener('change', (event) => {
     onLoading();
     chart_info.tempo = elm_bpm.value;
-    makeChart();
-    onLoaded();
+    setTimeout(() => makeChart().then(function () {
+        onLoaded();
+    }), 0);
+});
+
+elm_offset.addEventListener('change', (event) => {
+    chart_info.offset = elm_offset.value;
 });
 
 function exportChart() {
@@ -371,13 +460,11 @@ function exportChart() {
 
 function changeSplit(value) {
     onLoading().then(function () {
-        console.log("onLoading");
         split_value_index = Math.min(8, Math.max(0, split_value_index + value));
         split = SPLIT_VALUE[split_value_index];
         document.getElementById('split_num').innerText = split;
-        makeChart().then(function () {
-            console.log("onLoaded");
+        setTimeout(() => makeChart().then(function () {
             onLoaded();
-        });
+        }), 0);
     });
 }

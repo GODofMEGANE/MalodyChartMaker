@@ -2,8 +2,12 @@
 
 function detectBPM(ogg_src, accuracy) {
     return new Promise(function (resolve, reject) {
+        const BPM_SECTION = 200; //msec
+        const OFFSET_SECTION = 1; //msec
+        const OFFSET_THRESHOLD = 0.005;
         let answer = { count: 0, offset: 0, tempo: [] };
         let offset_count = -1;
+        accuracy = 1 / accuracy;
         //filter
         let context = new OfflineAudioContext(1, ogg_src.buffer.length, ogg_src.buffer.sampleRate);
         let sampling_rate = context.sampleRate;
@@ -21,7 +25,7 @@ function detectBPM(ogg_src, accuracy) {
         lp.connect(hp);
         hp.connect(context.destination);
         source.start(0);
-        context.startRendering()
+        context.startRendering();
         let filtered_buffer;
         context.oncomplete = function (e) {
             filtered_buffer = e.renderedBuffer;
@@ -30,13 +34,10 @@ function detectBPM(ogg_src, accuracy) {
             let length = filtered_buffer.length;
             let datasize = Math.min(length, 180 * sampling_rate);
             let data = filtered_buffer.getChannelData(0);
-            for (let i = 0; i < datasize; i += 1 * sampling_rate) {
+            for (let i = 0; i < datasize; i += BPM_SECTION * Math.floor(sampling_rate / 1000)) {
                 let max_index = -1;
                 let max_value = -Infinity;
-                for (let j = 0; j < 1 * sampling_rate; j++) {
-                    if (offset_count == -1 && data[i + j] > 0.05) {
-                        offset_count = i + j;
-                    }
+                for (let j = 0; (i + j < datasize && j < BPM_SECTION * Math.floor(sampling_rate / 1000)); j++) {
                     if (max_value < data[i + j]) {
                         max_index = [i + j];
                         max_value = data[i + j];
@@ -46,52 +47,83 @@ function detectBPM(ogg_src, accuracy) {
                     peaks.push(max_index);
                 }
             }
-            //calc interval
-            let interval_counts = [];
-            peaks.forEach(function (peak, index) {
-                for (let i = 0; i < 10; i++) {
-                    let interval = peaks[index + i] - peak;
-                    let found_interval = interval_counts.some(function (interval_count) {
-                        if (interval_count.interval === interval)
-                            return interval_count.count++;
-                    });
-                    if (!found_interval && interval !== 0 && !isNaN(interval)) {
-                        interval_counts.push({
-                            interval: interval,
-                            count: 1
-                        });
+            //find offset
+            let raw_context = new OfflineAudioContext(1, ogg_src.buffer.length, ogg_src.buffer.sampleRate);
+            let raw_source = raw_context.createBufferSource();
+            raw_source.buffer = ogg_src.buffer;
+            raw_source.connect(raw_context.destination);
+            raw_source.start(0);
+            raw_context.startRendering();
+            let raw_buffer;
+            raw_context.oncomplete = function (e) {
+                raw_buffer = e.renderedBuffer;
+                let raw_data = raw_buffer.getChannelData(0);
+                for (let i = 0; i < datasize; i += Math.floor(sampling_rate / 1000)) {
+                    if (raw_data[i] < OFFSET_THRESHOLD) {
+                        continue;
+                    }
+                    let data_sum = 0;
+                    for (let j = 0; (i + j < datasize && j < Math.floor(sampling_rate / 1000) * OFFSET_SECTION); j++) {
+                        data_sum += Math.abs(raw_data[i + j]);
+                    }
+                    //sums.push(data_sum / Math.floor(sampling_rate/1000) / OFFSET_SECTION);
+                    if (data_sum / Math.floor(sampling_rate / 1000) / OFFSET_SECTION > OFFSET_THRESHOLD) {
+                        offset_count = i;
+                        break;
                     }
                 }
-            });
-            //calc tempo
-            let tempo_counts = [];
-            interval_counts.forEach(function (interval_count, i) {
-                if (interval_count.interval === 0 || isNaN(interval_count.interval)) return;
-                let theoretical_tempo = 60 / (interval_count.interval / sampling_rate);
-                // Adjust the tempo to fit within the 90-180 BPM range
-                while (theoretical_tempo < 90) theoretical_tempo *= 2;
-                while (theoretical_tempo > 180) theoretical_tempo /= 2;
-                theoretical_tempo = Math.round(theoretical_tempo * accuracy) / accuracy;
-                let found_tempo = tempo_counts.some(function (tempo_count) {
-                    if (tempo_count.tempo === theoretical_tempo)
-                        return tempo_count.count += interval_count.count;
+                //calc interval
+                let interval_counts = [];
+                peaks.forEach(function (peak, index) {
+                    for (let i = 1; i < 10; i++) {
+                        let interval = peaks[index + i] - peak;
+                        let found_interval = interval_counts.some(function (interval_count) {
+                            if (interval_count.interval === interval)
+                                return interval_count.count++;
+                        });
+                        if (!found_interval && interval !== 0 && !isNaN(interval)) {
+                            interval_counts.push({
+                                interval: interval,
+                                count: 1
+                            });
+                        }
+                    }
                 });
-                if (!found_tempo) {
-                    tempo_counts.push({
-                        tempo: theoretical_tempo,
-                        count: interval_count.count,
-                        accuracy: 0
+                //calc tempo
+                let tempo_counts = [];
+                interval_counts.forEach(function (interval_count, i) {
+                    if (interval_count.interval === 0 || isNaN(interval_count.interval)) return;
+                    let theoretical_tempo = 60 / (interval_count.interval / sampling_rate);
+                    // Adjust the tempo to fit within the 90-180 BPM range
+                    while (Math.round(theoretical_tempo) <= 100) theoretical_tempo *= 2;
+                    while (Math.round(theoretical_tempo) > 200) theoretical_tempo /= 2;
+                    //if (Math.round(theoretical_tempo) <= 100) return;
+                    //if (Math.round(theoretical_tempo) > 200) return;
+                    theoretical_tempo = Math.round(theoretical_tempo * accuracy) / accuracy;
+                    let found_tempo = tempo_counts.some(function (tempo_count) {
+                        if (tempo_count.tempo === theoretical_tempo)
+                            return tempo_count.count += interval_count.count;
                     });
-                }
-            });
-            tempo_counts.forEach(function (tempo_count) {
-                tempo_count.accuracy = tempo_count.count / interval_counts.length;
-            });
-            tempo_counts.sort((a, b) => b.count - a.count);
-            answer.count = interval_counts.length;
-            answer.tempo = tempo_counts;
-            answer.offset = Math.round(offset_count / sampling_rate * 1000)-1000;
-            resolve(answer);
+                    if (!found_tempo) {
+                        tempo_counts.push({
+                            tempo: theoretical_tempo,
+                            count: interval_count.count,
+                            accuracy: 0
+                        });
+                    }
+                });
+                tempo_counts.forEach(function (tempo_count) {
+                    tempo_count.accuracy = tempo_count.count / interval_counts.length;
+                });
+                tempo_counts.sort((a, b) => b.count - a.count);
+                answer.count = interval_counts.length;
+                answer.tempo = tempo_counts;
+                let offset_msec = offset_count / sampling_rate * 1000;
+                answer.offset = -(offset_msec % (60 / tempo_counts[0].tempo * 1000) - (60 / tempo_counts[0].tempo * 1000));
+                resolve(answer);
+            }
+
+
         };
     });
 }
@@ -131,26 +163,26 @@ function exportToJSON(chart) {
     };
     chart.notes.forEach(
         function (element, index) {
-            if(element.type == 1){
+            if (element.type == 1) {
                 JSON_data.note.push({
                     beat: [
-                        Math.floor(element.beat/element.split),
-                        element.beat%element.split,
+                        Math.floor(element.beat / element.split),
+                        element.beat % element.split,
                         element.split
                     ],
                     column: element.column
                 });
             }
-            else if(element.type == 2){
+            else if (element.type == 2) {
                 JSON_data.note.push({
                     beat: [
-                        Math.floor(element.beat/element.split),
-                        element.beat%element.split,
+                        Math.floor(element.beat / element.split),
+                        element.beat % element.split,
                         element.split
                     ],
                     endbeat: [
-                        Math.floor((element.beat+element.length)/element.split),
-                        (element.beat+element.length)%element.split,
+                        Math.floor((element.beat + element.length) / element.split),
+                        (element.beat + element.length) % element.split,
                         element.split
                     ],
                     column: element.column
@@ -198,11 +230,11 @@ function reduction(note) {
     return note;
 }
 
-function isContain(value, min, max){
-    if(value >= min && value <= max){
+function isContain(value, min, max) {
+    if (value >= min && value <= max) {
         return true;
     }
-    else{
+    else {
         return false;
     }
 }
