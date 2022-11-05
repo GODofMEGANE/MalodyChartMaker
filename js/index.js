@@ -63,8 +63,9 @@ elm_oggfile_input.addEventListener('change',
 );
 
 function changePage(page) {
-    Array.from(elm_body.children).forEach(element => {
+    Array.from(document.getElementsByClassName('pages')).forEach(element => {
         if(element.id != 'loading')element.style.display = 'none';
+
     });
     switch (page) {
         case 'index':

@@ -172,6 +172,7 @@ function clickDiv(row, column) {
                 column: -1,
                 split: -1
             };
+            popup("コピー完了!", 1, 1);
         }
     }
     else if (notes_mode == 4) {
@@ -343,6 +344,7 @@ function clickNote(id) {
                 column: -1,
                 split: -1
             };
+            popup("コピー完了!", 1, 1);
         }
     }
     if (notes_mode == 4) {

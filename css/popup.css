@@ -1,0 +1,24 @@
+#popup{
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    z-index: 200;
+    pointer-events: none;
+}
+
+#popup_text{
+    height: 30px;
+    width: 120px;
+    transform: translate(-50%, -50%);
+    position: absolute;
+    left: 50%;
+    bottom: 10%;
+    visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: silver;
+    border: 1px solid black;
+    box-shadow: 8px 8px 16px gray;
+    transition: all 200ms 0s ease-in-out;
+}

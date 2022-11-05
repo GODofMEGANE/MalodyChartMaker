@@ -122,8 +122,6 @@ function detectBPM(ogg_src, accuracy) {
                 answer.offset = -(offset_msec % (60 / tempo_counts[0].tempo * 1000) - (60 / tempo_counts[0].tempo * 1000));
                 resolve(answer);
             }
-
-
         };
     });
 }
