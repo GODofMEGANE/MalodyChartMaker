@@ -53,6 +53,12 @@ let selected_notes = {
     start: {},
     notes: []
 };
+let before_painted = {
+    start_row: -1,
+    start_column: -1,
+    end_row: -1,
+    end_column: -1
+};
 const SPLIT_VALUE = [2, 3, 4, 6, 8, 12, 16, 24, 32];
 let split_value_index = 2;
 
@@ -83,10 +89,8 @@ function makeChart() {
                 chart_grid.style.height = grid_height + 'vh';
                 if ((max_row - row - 1) % split == 0) chart_grid.innerHTML = '<hr width="100%" size="3" noshade="" color="black">';
                 else chart_grid.innerHTML = '<hr width="100%" size="1" noshade="" color="lightgray">';
-                const placeNotesOnclick = (note_row, note_col) => {
-                    clickDiv(note_row, note_col);
-                }
-                chart_grid.onclick = () => placeNotesOnclick(max_row - row - 1, column);
+                chart_grid.onclick = () => clickDiv(max_row - row - 1, column);
+                chart_grid.addEventListener('mouseover', () => hoverGrid(max_row - row - 1, column));
                 chart_grid_row.appendChild(chart_grid);
             }
         }
@@ -125,7 +129,7 @@ function clickDiv(row, column) {
                 split: split
             });
         }
-        else {
+        else if(longnote_place.beat * split != row * longnote_place.split){
             let note_info = reduction({
                 id: notes_elm_id,
                 type: 2,
@@ -172,11 +176,14 @@ function clickDiv(row, column) {
                 column: -1,
                 split: -1
             };
+            if (before_painted.start_row != -1) {
+                paintGrids(before_painted.start_row, before_painted.start_column, before_painted.end_row, before_painted.end_column);
+            }
             popup("コピー完了!", 1, 1);
         }
     }
     else if (notes_mode == 4) {
-        pasteNotes(selected_notes, {beat: row, column: column, split: split});
+        pasteNotes(selected_notes, { beat: row, column: column, split: split });
     }
 }
 
@@ -290,6 +297,7 @@ function displayNote(note_info) {
             else note.className = 'note';
             note.style.bottom = (grid_height * (row + 0.5)) + 'vh';
             note.onclick = () => clickNote(note_info.id);
+            note.addEventListener('mouseover', () => hoverNote(note_info));
             elm_start[note_info.column].appendChild(note);
             break;
         case 2:
@@ -301,6 +309,7 @@ function displayNote(note_info) {
             else note.className = 'long';
             note.style.bottom = (grid_height * (row + 0.5)) + 'vh';
             note.onclick = () => clickNote(note_info.id);
+            note.addEventListener('mouseover', () => hoverNote(note_info));
             elm_start[note_info.column].appendChild(note);
             //ロングノーツの中間部分
             let length = note_info.length / note_info.split * split;
@@ -310,6 +319,7 @@ function displayNote(note_info) {
             bridge.style.height = (grid_height * length) + 'vh';
             bridge.style.bottom = (grid_height * (row + 0.5)) + 'vh';
             bridge.onclick = () => clickNote(note_info.id);
+            bridge.addEventListener('mouseover', () => hoverNote(note_info));
             elm_start[note_info.column].appendChild(bridge);
             break;
     }
@@ -318,16 +328,16 @@ function displayNote(note_info) {
 //描画されたノーツをクリックした際に発火
 function clickNote(id) {
     let clicked_note;
-        chart_info.notes.forEach(function (element) {
-            if (element.id == id) {
-                clicked_note = element;
-                return;
-            }
-        });
+    chart_info.notes.forEach(function (element) {
+        if (element.id == id) {
+            clicked_note = element;
+            return;
+        }
+    });
     if (notes_mode == 2) {
         deleteNote(id);
     }
-    if(notes_mode == 3){
+    if (notes_mode == 3) {
         if (selected_place.beat == -1) {
             selected_place = reduction({
                 beat: clicked_note.beat,
@@ -344,6 +354,9 @@ function clickNote(id) {
                 column: -1,
                 split: -1
             };
+            if (before_painted.start_row != -1) {
+                paintGrids(before_painted.start_row, before_painted.start_column, before_painted.end_row, before_painted.end_column);
+            }
             popup("コピー完了!", 1, 1);
         }
     }
@@ -352,7 +365,58 @@ function clickNote(id) {
     }
 }
 
-function pasteNotes(copy, place){
+function hoverGrid(row, column) {
+    if (before_painted.start_row != -1) {
+        paintGrids(before_painted.start_row, before_painted.start_column, before_painted.end_row, before_painted.end_column);
+    }
+    if (notes_mode == 1) {
+        if (longnote_place.column == column) {
+            let location = noteToGrid(longnote_place);
+            paintGrids(location.row, location.column, row, column, 'palegreen');
+            before_painted = {
+                start_row: location.row,
+                start_column: location.column,
+                end_row: row,
+                end_column: column
+            }
+        }
+    }
+    if (notes_mode == 3) {
+        if (selected_place.beat == -1) {
+            paintGrids(row, column, row, column, 'palegreen');
+            before_painted = {
+                start_row: row,
+                start_column: column,
+                end_row: row,
+                end_column: column
+            }
+        }
+        else {
+            let location = noteToGrid(selected_place);
+            paintGrids(location.row, location.column, row, column, 'palegreen');
+            before_painted = {
+                start_row: location.row,
+                start_column: location.column,
+                end_row: row,
+                end_column: column
+            }
+        }
+    }
+}
+
+function hoverNote(note) {
+    if (notes_mode == 1) {
+        if (before_painted.start_row != -1) {
+            paintGrids(before_painted.start_row, before_painted.start_column, before_painted.end_row, before_painted.end_column);
+        }
+    }
+    if (notes_mode == 3) {
+        let location = noteToGrid(note);
+        hoverGrid(location.row, location.column);
+    }
+}
+
+function pasteNotes(copy, place) {
     if (copy.notes.length == 0) {
         alert("ノーツが選択されていません");
     }
@@ -398,6 +462,28 @@ function changeNotesMode(mode) {
             element.style.backgroundColor = 'skyblue';
         }
     });
+}
+
+function noteToGrid(note) {
+    let answer = {
+        column: note.column,
+        row: note.beat * split / note.split
+    };
+    return answer;
+}
+
+function paintGrids(start_row, start_column, end_row, end_column, color = -1) {
+    for (let i = Math.min(start_row, end_row); i <= Math.max(start_row, end_row); i++) {
+        for (let j = Math.min(start_column, end_column); j <= Math.max(start_column, end_column); j++) {
+            let grid = document.getElementsByClassName('grid row' + i + ' column' + j)[0];
+            if (color == -1) {
+                grid.style.backgroundColor = null;
+            }
+            else {
+                grid.style.backgroundColor = color;
+            }
+        }
+    }
 }
 
 function openDialog(dialog_id) {
