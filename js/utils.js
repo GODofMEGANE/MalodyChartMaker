@@ -1,6 +1,19 @@
 "use strict";
 
-function detectBPM(ogg_src, accuracy) {
+/**
+ *- 曲のBPMとオフセットを推定します
+ * @param {AudioBufferSourceNode} ogg_src 曲データのAudioSource
+ * @param {number} accuracy BPMの精度
+ * @return {{offset: number,
+ *              count: number,
+ *              tempo: [{
+ *                  tempo: number,
+ *                  count: number,
+ *                  accuracy: number
+ *              }]
+ *          }} 推定したBPMとオフセットの情報
+ */
+function detectBPM(ogg_src, accuracy = 1) {
     return new Promise(function (resolve, reject) {
         const BPM_SECTION = 200; //msec
         const OFFSET_SECTION = 1; //msec
@@ -126,6 +139,30 @@ function detectBPM(ogg_src, accuracy) {
     });
 }
 
+/**
+ *- 編集用の譜面形式から出力用の譜面形式に変換します
+ * @param {{
+ *  bpm: number,
+ *  offset: number,
+ *  creator: string,
+ *  version: string,
+ *  id: number,
+ *  mode: number,
+ *  time: number,
+ *  song: {
+ *      title: number,
+ *      artist: number,
+ *      id: number
+ *  },
+ *  mode_ext: {
+ *      column: number,
+ *      bar_begin: number
+ *  },
+ *  notes: [Note],
+ *  events: [EventInfo]
+ *  }} chart 編集中の譜面
+ * @return {JSON} 出力用の譜面
+ */
 function exportToJSON(chart) {
     let JSON_data = {
         meta: {
@@ -188,6 +225,18 @@ function exportToJSON(chart) {
             }
         }
     )
+    chart.events.foreach(
+        function (element, index) {
+            JSON_data.note.push({
+                beat: [
+                    Math.floor(element.beat / element.split),
+                    element.beat % element.split,
+                    element.split
+                ],
+                scroll: 1.0
+            });
+        }
+    )
     JSON_data.note.push({
         beat: [
             0,
@@ -202,7 +251,12 @@ function exportToJSON(chart) {
     return JSON.stringify(JSON_data);
 }
 
-function calcGcd(a, b) {
+/**
+ *- 2つの値の最大公約数を返します
+ * @param {number} a 値1
+ * @param {number} b 値2 
+ */
+function calcGcd(a = -1, b = -1) {
     if (a % b) {
         return calcGcd(b, a % b)
     } else {
@@ -210,6 +264,11 @@ function calcGcd(a, b) {
     }
 }
 
+/**
+ *- ノーツのデータを単純化し一意に決定させます
+ * @param {Note} note ノーツデータ
+ * @return {Note} 単純化後ノーツ
+ */
 function reduction(note) {
     if (note.type == 1 && note.beat == 0) {
         note.split = 1;
@@ -228,7 +287,14 @@ function reduction(note) {
     return note;
 }
 
-function isContain(value, min, max) {
+/**
+ *- ある値が2つの値の間にあるかを判定します
+ * @param {number} value 判定する値
+ * @param {number} min 下限
+ * @param {number} max 上限
+ * @return {boolean} 含まれるならtrue
+ */
+function isContain(value = -1, min = 0, max = 0) {
     if (value >= min && value <= max) {
         return true;
     }

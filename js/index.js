@@ -25,7 +25,7 @@ ogg_reader.onload = function () {
             chart_info.offset = detected.offset;
             elm_bpm.value = detected.tempo[0].tempo;
             elm_offset.value = detected.offset;
-            console.log("解析完了\nBPM:" + detected.tempo[0].tempo + "\n信頼度:" + detected.tempo[0].accuracy * 100 + "%\nOFFSET:" + detected.offset);
+            console.log(`解析完了\nBPM:${detected.tempo[0].tempo}\n信頼度:${detected.tempo[0].accuracy * 100}%\nOFFSET:${detected.offset}`);
             makeChart().then(function(){
                 location.hash = "chart_start";
                 console.log("Loading Complete");
@@ -62,6 +62,11 @@ elm_oggfile_input.addEventListener('change',
     }
 );
 
+/**
+ *- ページを遷移させます
+ * @param page ページ名
+ * @return {boolean} 成功したかどうか
+ */
 function changePage(page) {
     Array.from(document.getElementsByClassName('pages')).forEach(element => {
         if(element.id != 'loading')element.style.display = 'none';
@@ -75,7 +80,7 @@ function changePage(page) {
             elm_4k.style.display = 'block';
             break;
         default:
-            console.error("Invalid page name \"", page, "\"");
+            console.error(`Invalid page name "${page}"`);
             return false;
     }
     return true;
